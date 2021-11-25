@@ -8,7 +8,6 @@ require (
 	github.com/bugsnag/bugsnag-go v2.1.2+incompatible
 	github.com/bugsnag/panicwrap v1.3.4 // indirect
 	github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db
-	github.com/go-kit/kit v0.11.0
 	github.com/go-kit/log v0.2.0
 	github.com/gofrs/uuid v4.1.0+incompatible // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
@@ -17,6 +16,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/gomega v1.13.0
+	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
@@ -28,4 +28,5 @@ require (
 	google.golang.org/grpc v1.42.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.34.0
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

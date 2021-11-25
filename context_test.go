@@ -7,7 +7,7 @@ import (
 
 	"github.com/bugsnag/bugsnag-go"
 	"github.com/franela/goblin"
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
