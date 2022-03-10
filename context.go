@@ -286,6 +286,11 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 	if ctx.Notifier != nil && !strings.Contains(err.Error(), context.Canceled.Error()) {
 		var parentErr = err
 		var st stackTracer
+		curSt, ok := parentErr.(stackTracer)
+		if ok {
+			st = curSt
+		}
+
 		var curErr = err
 		for {
 			unwrapped := errors.Unwrap(curErr)
