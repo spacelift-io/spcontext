@@ -39,10 +39,6 @@ func TestContext(t *testing.T) {
 			sut = spcontext.New(log.NewLogfmtLogger(logBuffer)).With("xtest", true)
 		})
 
-		// logs := func(message string) {
-		// 	suite.Contains(logBuffer.String(), message)
-		// }
-
 		withNotifier := func(errorMessage string) {
 			sut.Notifier = notifier
 
