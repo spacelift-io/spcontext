@@ -2,8 +2,9 @@ package xray
 
 import (
 	"github.com/aws/aws-xray-sdk-go/xray"
+
 	"github.com/spacelift-io/spcontext"
-	"github.com/spacelift-io/spcontext/internal"
+	"github.com/spacelift-io/spcontext/tracing/internal"
 )
 
 // Tracer is an AWS X-Ray implementation of a Tracer.
