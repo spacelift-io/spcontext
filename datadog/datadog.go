@@ -6,6 +6,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/spacelift-io/spcontext"
+	"github.com/spacelift-io/spcontext/internal"
 )
 
 // Tracer is an Datadog implementation of a Tracer.
@@ -39,24 +40,13 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []interfa
 		span.SetTag(ext.AnalyticsEvent, true)
 	}
 
-	addFields(span, fields...)
-	span.Finish(tracer.WithError(err))
-}
-
-func addFields(span tracer.Span, fields ...interface{}) {
 	// Datadog seems to be OK with duplicate tags but when testing we still want
 	// make sure that the right (latest) value prevails.
-	deduplicated := make(map[string]interface{})
-
-	for i := 0; i < len(fields)/2; i++ {
-		key := fields[2*i].(string)
-		value := fields[2*i+1]
-		deduplicated[key] = value
-	}
-
-	for key, value := range deduplicated {
+	for key, value := range internal.DeduplicateFields(fields) {
 		span.SetTag(key, value)
 	}
+
+	span.Finish(tracer.WithError(err))
 }
 
 // GetLogFields returns the fields which should be used in a log message in this context.
