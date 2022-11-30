@@ -60,18 +60,13 @@ func TestContext(t *testing.T) {
 			suite.True(notifier.AssertCalled(
 				t,
 				"Notify",
-				mock.AnythingOfType("*errors.fundamental"),
+				mock.AnythingOfType("*spcontext.errorWithStackFrames"),
 				mock.AnythingOfType("[]interface {}"),
 			))
 		}
 
 		notifierNotCalled := func() {
-			suite.True(notifier.AssertNotCalled(
-				t,
-				"Notify",
-				mock.AnythingOfType("*errors.fundamental"),
-				mock.AnythingOfType("[]interface {}"),
-			))
+			suite.True(notifier.AssertNotCalled(t, "Notify"))
 		}
 
 		g.Describe("DirectError", func() {

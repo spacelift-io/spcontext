@@ -312,7 +312,9 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 
 		fieldsMap["original_error"] = parentErr.Error()
 
-		ctx.Notifier.Notify(curErr, bugsnag.MetaData{FieldsTab: fieldsMap}, ctx)
+		if err := ctx.Notifier.Notify(curErr, bugsnag.MetaData{FieldsTab: fieldsMap}, ctx); err != nil {
+			ctx.Errorf("error notifying the exception tracker: %v", err)
+		}
 	}
 
 	ctx.log(fields, "error", "%s: %v", internal.Error(), err)

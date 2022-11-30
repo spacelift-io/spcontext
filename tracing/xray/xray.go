@@ -15,7 +15,9 @@ type Tracer struct {
 func (t *Tracer) OnSpanStart(ctx *spcontext.Context, name, resource string) *spcontext.Context {
 	newCtx, segment := xray.BeginSubsegment(ctx, name)
 	if resource != "" {
-		segment.AddAnnotation("resource", resource)
+		if err := segment.AddAnnotation("resource", resource); err != nil {
+			_ = ctx.DirectError(err, "failed to add resource annotation to an X-Ray segment")
+		}
 	}
 
 	return spcontext.FromStdContext(newCtx)
@@ -32,7 +34,9 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []any, dr
 	setDropAndAnalyze(segment, drop, analyze)
 
 	for key, value := range internal.DeduplicateFields(fields) {
-		segment.AddAnnotation(key, value)
+		if err := segment.AddAnnotation(key, value); err != nil {
+			_ = ctx.DirectError(err, "failed to add annotation to an X-Ray segment")
+		}
 	}
 
 	segment.Close(err)

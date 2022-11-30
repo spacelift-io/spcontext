@@ -6,5 +6,5 @@ type IgnoreLogError func(...interface{}) error
 
 // Log suppresses the error from the underlying logging function.
 func (i IgnoreLogError) Log(args ...interface{}) {
-	i(args...)
+	_ = i(args...)
 }
