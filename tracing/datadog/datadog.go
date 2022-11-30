@@ -6,7 +6,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/spacelift-io/spcontext"
-	"github.com/spacelift-io/spcontext/internal"
+	"github.com/spacelift-io/spcontext/tracing/internal"
 )
 
 // Tracer is an Datadog implementation of a Tracer.
