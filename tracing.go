@@ -103,7 +103,7 @@ func (ctx *Context) StartSpan(opts ...SpanOption) (*Context, Span) {
 		opt(&cfg)
 	}
 
-	newCtx := ctx.tracer.OnSpanStart(ctx, cfg.Operation, cfg.Resource)
+	newCtx := ctx.Tracer.OnSpanStart(ctx, cfg.Operation, cfg.Resource)
 
 	return newCtx, &span{ctx: newCtx, fields: cfg.Tags}
 }
@@ -126,7 +126,7 @@ func (s *span) Close(err error, opts ...SpanCloseOption) {
 
 	fields := s.fields.EvaluateFields()
 
-	s.ctx.tracer.OnSpanClose(s.ctx, err, fields, s.drop || cfg.Drop, s.analyze || cfg.Analyze)
+	s.ctx.Tracer.OnSpanClose(s.ctx, err, fields, s.drop || cfg.Drop, s.analyze || cfg.Analyze)
 }
 
 func (s *span) Drop() {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 )
 
@@ -18,7 +18,7 @@ func ContextInjector(ctx *Context) func(w http.ResponseWriter, r *http.Request, 
 			fields:   ctx.fields,
 			logger:   ctx.logger,
 			Notifier: ctx.Notifier,
-			tracer:   ctx.tracer,
+			Tracer:   ctx.Tracer,
 		}))
 	}
 }
@@ -32,7 +32,7 @@ func GRPCStreamContextInjector(ctx *Context) grpc.StreamServerInterceptor {
 			fields:   ctx.fields,
 			logger:   ctx.logger,
 			Notifier: ctx.Notifier,
-			tracer:   ctx.tracer,
+			Tracer:   ctx.Tracer,
 		}
 		wrappedStream := grpc_middleware.WrapServerStream(stream)
 		wrappedStream.WrappedContext = newCtx
