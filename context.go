@@ -36,7 +36,7 @@ type Context struct {
 	logger   Logger
 	Notifier Notifier
 
-	tracer Tracer
+	Tracer Tracer
 }
 
 // ContextOption is used to optionally configure the context on creation.
@@ -52,7 +52,7 @@ func WithNotifier(notifier Notifier) ContextOption {
 // WithTracer adds an optional tracer to the new context.
 func WithTracer(tracer Tracer) ContextOption {
 	return func(ctx *Context) {
-		ctx.tracer = tracer
+		ctx.Tracer = tracer
 	}
 }
 
@@ -65,7 +65,7 @@ func New(logger Logger, opts ...ContextOption) *Context {
 			"ts", Valuer(log.Timestamp(time.Now)),
 		),
 		logger: logger,
-		tracer: &NopTracer{},
+		Tracer: &NopTracer{},
 	}
 
 	for _, opt := range opts {
@@ -81,7 +81,7 @@ func (ctx *Context) With(kvs ...interface{}) *Context {
 		fields:   ctx.fields.With(kvs...),
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}
 }
 
@@ -106,7 +106,7 @@ func FromStdContext(stdCtx context.Context) *Context {
 			fields:   outCtx.fields,
 			logger:   outCtx.logger,
 			Notifier: outCtx.Notifier,
-			tracer:   outCtx.tracer,
+			Tracer:   outCtx.Tracer,
 		}
 	}
 
@@ -115,7 +115,7 @@ func FromStdContext(stdCtx context.Context) *Context {
 		fields:   &Fields{},
 		logger:   log.NewNopLogger(),
 		Notifier: nil,
-		tracer:   &NopTracer{},
+		Tracer:   &NopTracer{},
 	}
 }
 
@@ -126,7 +126,7 @@ func WithValue(ctx *Context, key, val interface{}) *Context {
 		fields:   ctx.fields,
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}
 }
 
@@ -141,7 +141,7 @@ func WithCancel(ctx *Context) (*Context, CancelFunc) {
 		fields:   ctx.fields,
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}, cancel
 }
 
@@ -153,7 +153,7 @@ func WithTimeout(ctx *Context, timeout time.Duration) (*Context, context.CancelF
 		fields:   ctx.fields,
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}, cancel
 }
 
@@ -165,7 +165,7 @@ func WithDeadline(ctx *Context, d time.Time) (*Context, context.CancelFunc) {
 		fields:   ctx.fields,
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}, cancel
 }
 
@@ -178,7 +178,7 @@ func BackgroundFrom(ctx *Context) *Context {
 		fields:   ctx.fields,
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}
 }
 
@@ -191,7 +191,7 @@ func BackgroundWithValuesFrom(ctx *Context) *Context {
 		fields:   ctx.fields,
 		logger:   ctx.logger,
 		Notifier: ctx.Notifier,
-		tracer:   ctx.tracer,
+		Tracer:   ctx.Tracer,
 	}
 }
 
@@ -205,7 +205,7 @@ func (f *backgroundWithValuesContext) Err() error                              {
 func (f *backgroundWithValuesContext) Value(key interface{}) interface{}       { return f.ctx.Value(key) }
 
 func (ctx *Context) getEvaluatedFields() []interface{} {
-	return append(ctx.fields.EvaluateFields(), ctx.tracer.GetLogFields(ctx)...)
+	return append(ctx.fields.EvaluateFields(), ctx.Tracer.GetLogFields(ctx)...)
 }
 
 func (ctx *Context) log(fields []interface{}, level string, format string, args ...interface{}) {
