@@ -13,7 +13,15 @@ type Tracer struct {
 
 // OnSpanStart is called when a new span is created.
 func (t *Tracer) OnSpanStart(ctx *spcontext.Context, name, resource string) *spcontext.Context {
-	newCtx, segment := xray.BeginSubsegment(ctx, name)
+	createFn := xray.BeginSubsegment
+
+	// Depending on whether the segment exists or not, we either create a
+	// subsegment or a new segment.
+	if xray.GetSegment(ctx) == nil {
+		createFn = xray.BeginSegment
+	}
+
+	newCtx, segment := createFn(ctx, name)
 	if resource != "" {
 		if err := segment.AddAnnotation("resource", resource); err != nil {
 			_ = ctx.DirectError(err, "failed to add resource annotation to an X-Ray segment")
