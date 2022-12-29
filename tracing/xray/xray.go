@@ -1,6 +1,9 @@
 package xray
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/aws/aws-xray-sdk-go/xray"
 
 	"github.com/spacelift-io/spcontext"
@@ -13,7 +16,15 @@ type Tracer struct {
 
 // OnSpanStart is called when a new span is created.
 func (t *Tracer) OnSpanStart(ctx *spcontext.Context, name, resource string) *spcontext.Context {
-	newCtx, segment := xray.BeginSubsegment(ctx, name)
+	createFn := xray.BeginSubsegment
+
+	// Depending on whether the segment exists or not, we either create a
+	// subsegment or a new segment.
+	if xray.GetSegment(ctx) == nil {
+		createFn = xray.BeginSegment
+	}
+
+	newCtx, segment := createFn(ctx, name)
 	if resource != "" {
 		if err := segment.AddAnnotation("resource", resource); err != nil {
 			_ = ctx.DirectError(err, "failed to add resource annotation to an X-Ray segment")
@@ -34,7 +45,7 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []any, dr
 	setDropAndAnalyze(segment, drop, analyze)
 
 	for key, value := range internal.DeduplicateFields(fields) {
-		if err := segment.AddAnnotation(key, value); err != nil {
+		if err := segment.AddAnnotation(key, toXRayAnnotationValue(value)); err != nil {
 			_ = ctx.DirectError(err, "failed to add annotation to an X-Ray segment")
 		}
 	}
@@ -69,5 +80,27 @@ func setDropAndAnalyze(segment *xray.Segment, drop, analyze bool) {
 		segment.Dummy = true
 	} else if analyze {
 		segment.Sampled = true
+	}
+}
+
+// As per the docs, the only values allowed for annotations are bool, int, uint,
+// float32, float64, and string. We don't want to require users to remember about
+// this so we'll convert the unsupported types to something that is supported:
+// integer types to an int, floats to float64 and everything else to a string,
+// attempting to use the String() method if available.
+func toXRayAnnotationValue(value any) any {
+	switch v := value.(type) {
+	case bool, int, uint, float32, float64, string:
+		return v
+	case int8, int16, int32, int64:
+		return int(reflect.ValueOf(v).Int())
+	case uint8, uint16, uint32, uint64:
+		return uint(reflect.ValueOf(v).Uint())
+	default:
+		if stringer, ok := value.(fmt.Stringer); ok {
+			return stringer.String()
+		}
+
+		return fmt.Sprintf("%v", value)
 	}
 }
