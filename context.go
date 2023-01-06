@@ -24,6 +24,17 @@ type Notifier interface {
 	AutoNotify(...interface{})
 }
 
+// NopNotifier is a notifier that does nothing.
+type NopNotifier struct{}
+
+// Notify does nothing.
+func (n *NopNotifier) Notify(error, ...interface{}) error {
+	return nil
+}
+
+// AutoNotify does nothing.
+func (n *NopNotifier) AutoNotify(...interface{}) {}
+
 // Logger models the accepted logger underlying the context.
 type Logger interface {
 	Log(keyvals ...interface{}) error
