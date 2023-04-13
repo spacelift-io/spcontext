@@ -25,6 +25,12 @@ func (t *Tracer) OnSpanStart(ctx *spcontext.Context, name, resource string) *spc
 	}
 
 	newCtx, segment := createFn(ctx, name)
+	if name != "" {
+		if err := segment.AddAnnotation("operation", name); err != nil {
+			_ = ctx.DirectError(err, "failed to add operation annotation to an X-Ray segment")
+		}
+	}
+
 	if resource != "" {
 		if err := segment.AddAnnotation("resource", resource); err != nil {
 			_ = ctx.DirectError(err, "failed to add resource annotation to an X-Ray segment")
