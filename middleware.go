@@ -14,11 +14,12 @@ import (
 func ContextInjector(ctx *Context) func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		next(w, r.WithContext(&Context{
-			Context:  &mergeValuesContext{base: r.Context(), merged: ctx.Context},
-			fields:   ctx.fields,
-			logger:   ctx.logger,
-			Notifier: ctx.Notifier,
-			Tracer:   ctx.Tracer,
+			Context:          &mergeValuesContext{base: r.Context(), merged: ctx.Context},
+			fields:           ctx.fields,
+			logger:           ctx.logger,
+			Notifier:         ctx.Notifier,
+			Tracer:           ctx.Tracer,
+			onSpanStartHooks: ctx.onSpanStartHooks,
 		}))
 	}
 }
@@ -28,11 +29,12 @@ func ContextInjector(ctx *Context) func(w http.ResponseWriter, r *http.Request, 
 func GRPCStreamContextInjector(ctx *Context) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		newCtx := &Context{
-			Context:  &mergeValuesContext{base: stream.Context(), merged: ctx.Context},
-			fields:   ctx.fields,
-			logger:   ctx.logger,
-			Notifier: ctx.Notifier,
-			Tracer:   ctx.Tracer,
+			Context:          &mergeValuesContext{base: stream.Context(), merged: ctx.Context},
+			fields:           ctx.fields,
+			logger:           ctx.logger,
+			Notifier:         ctx.Notifier,
+			Tracer:           ctx.Tracer,
+			onSpanStartHooks: ctx.onSpanStartHooks,
 		}
 		wrappedStream := grpc_middleware.WrapServerStream(stream)
 		wrappedStream.WrappedContext = newCtx

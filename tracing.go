@@ -86,6 +86,8 @@ type Span interface {
 	SetTags(tags ...interface{})
 }
 
+type activeSpanContextKey struct{}
+
 // StartSpan starts a new span using the context fields as metadata.
 // It returns a new context with attached trace and span IDs as metadata.
 func (ctx *Context) StartSpan(opts ...SpanOption) (*Context, Span) {
@@ -104,8 +106,24 @@ func (ctx *Context) StartSpan(opts ...SpanOption) (*Context, Span) {
 	}
 
 	newCtx := ctx.Tracer.OnSpanStart(ctx, cfg.Operation, cfg.Resource)
+	activeSpan := &span{ctx: newCtx, fields: cfg.Tags}
 
-	return newCtx, &span{ctx: newCtx, fields: cfg.Tags}
+	ctx.onStartSpan(activeSpan)
+
+	return WithValue(newCtx, activeSpanContextKey{}, activeSpan), activeSpan
+}
+
+func (ctx *Context) onStartSpan(activeSpan *span) {
+	if len(ctx.onSpanStartHooks) == 0 {
+		return
+	}
+	parentSpan, ok := ctx.Value(activeSpanContextKey{}).(*span)
+	if !ok {
+		return
+	}
+	for _, fn := range ctx.onSpanStartHooks {
+		fn(parentSpan, activeSpan)
+	}
 }
 
 type span struct {
@@ -135,6 +153,10 @@ func (s *span) Drop() {
 
 func (s *span) SetTags(tags ...interface{}) {
 	s.fields = s.fields.With(tags...)
+}
+
+func (s *span) Value(key string) interface{} {
+	return s.fields.Value(key)
 }
 
 // NopTracer is a Tracer which does nothing.

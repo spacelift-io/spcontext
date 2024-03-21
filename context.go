@@ -37,6 +37,8 @@ type Context struct {
 	Notifier Notifier
 
 	Tracer Tracer
+
+	onSpanStartHooks []func(Span, Span)
 }
 
 // ContextOption is used to optionally configure the context on creation.
@@ -53,6 +55,13 @@ func WithNotifier(notifier Notifier) ContextOption {
 func WithTracer(tracer Tracer) ContextOption {
 	return func(ctx *Context) {
 		ctx.Tracer = tracer
+	}
+}
+
+// OnSpanStart adds an on span start hook to the new context.
+func OnSpanStart(hook func(Span, Span)) ContextOption {
+	return func(ctx *Context) {
+		ctx.onSpanStartHooks = append(ctx.onSpanStartHooks, hook)
 	}
 }
 
@@ -77,11 +86,12 @@ func New(logger Logger, opts ...ContextOption) *Context {
 // With adds the given alternating keys and values to the context, returning a new child context.
 func (ctx *Context) With(kvs ...interface{}) *Context {
 	return &Context{
-		Context:  ctx.Context,
-		fields:   ctx.fields.With(kvs...),
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          ctx.Context,
+		fields:           ctx.fields.With(kvs...),
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}
 }
 
@@ -102,11 +112,12 @@ func FromStdContext(stdCtx context.Context) *Context {
 	if v != nil {
 		outCtx := v.(*Context)
 		return &Context{
-			Context:  stdCtx,
-			fields:   outCtx.fields,
-			logger:   outCtx.logger,
-			Notifier: outCtx.Notifier,
-			Tracer:   outCtx.Tracer,
+			Context:          stdCtx,
+			fields:           outCtx.fields,
+			logger:           outCtx.logger,
+			Notifier:         outCtx.Notifier,
+			Tracer:           outCtx.Tracer,
+			onSpanStartHooks: outCtx.onSpanStartHooks,
 		}
 	}
 
@@ -122,11 +133,12 @@ func FromStdContext(stdCtx context.Context) *Context {
 // WithValue adds a key value to the context. Use instead of context.WithValue
 func WithValue(ctx *Context, key, val interface{}) *Context {
 	return &Context{
-		Context:  context.WithValue(ctx.Context, key, val),
-		fields:   ctx.fields,
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          context.WithValue(ctx.Context, key, val),
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}
 }
 
@@ -137,11 +149,12 @@ type CancelFunc = context.CancelFunc
 func WithCancel(ctx *Context) (*Context, CancelFunc) {
 	newCtx, cancel := context.WithCancel(ctx.Context)
 	return &Context{
-		Context:  newCtx,
-		fields:   ctx.fields,
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          newCtx,
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}, cancel
 }
 
@@ -149,11 +162,12 @@ func WithCancel(ctx *Context) (*Context, CancelFunc) {
 func WithTimeout(ctx *Context, timeout time.Duration) (*Context, context.CancelFunc) {
 	newCtx, cancel := context.WithTimeout(ctx.Context, timeout)
 	return &Context{
-		Context:  newCtx,
-		fields:   ctx.fields,
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          newCtx,
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}, cancel
 }
 
@@ -161,11 +175,12 @@ func WithTimeout(ctx *Context, timeout time.Duration) (*Context, context.CancelF
 func WithDeadline(ctx *Context, d time.Time) (*Context, context.CancelFunc) {
 	newCtx, cancel := context.WithDeadline(ctx.Context, d)
 	return &Context{
-		Context:  newCtx,
-		fields:   ctx.fields,
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          newCtx,
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}, cancel
 }
 
@@ -174,11 +189,12 @@ func WithDeadline(ctx *Context, d time.Time) (*Context, context.CancelFunc) {
 // Use instead of context.Background().
 func BackgroundFrom(ctx *Context) *Context {
 	return &Context{
-		Context:  context.Background(),
-		fields:   ctx.fields,
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          context.Background(),
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}
 }
 
@@ -187,11 +203,12 @@ func BackgroundFrom(ctx *Context) *Context {
 // Use instead of BackgroundFrom when you want to keep key-value information.
 func BackgroundWithValuesFrom(ctx *Context) *Context {
 	return &Context{
-		Context:  &backgroundWithValuesContext{ctx: ctx},
-		fields:   ctx.fields,
-		logger:   ctx.logger,
-		Notifier: ctx.Notifier,
-		Tracer:   ctx.Tracer,
+		Context:          &backgroundWithValuesContext{ctx: ctx},
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
 	}
 }
 
