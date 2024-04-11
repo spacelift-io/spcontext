@@ -59,7 +59,7 @@ func WithTracer(tracer Tracer) ContextOption {
 }
 
 // OnSpanStart adds an on span start hook to the new context.
-func OnSpanStart(hook func(Span, Span)) ContextOption {
+func OnSpanStart(hook func(parentSpan, activeSpan Span)) ContextOption {
 	return func(ctx *Context) {
 		ctx.onSpanStartHooks = append(ctx.onSpanStartHooks, hook)
 	}
