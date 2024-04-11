@@ -126,7 +126,7 @@ func (ctx *Context) onStartSpan(activeSpan *span) {
 	}
 }
 
-func (ctx *Context) activeSpan() *span {
+func (ctx *Context) activeSpan() interface{} {
 	s, ok := ctx.Value(activeSpanContextKey{}).(*span)
 	if !ok {
 		return nil
