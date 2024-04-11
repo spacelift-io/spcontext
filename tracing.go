@@ -126,6 +126,14 @@ func (ctx *Context) onStartSpan(activeSpan *span) {
 	}
 }
 
+func (ctx *Context) activeSpan() *span {
+	s, ok := ctx.Value(activeSpanContextKey{}).(*span)
+	if !ok {
+		return nil
+	}
+	return s
+}
+
 type span struct {
 	ctx           *Context
 	fields        *Fields
