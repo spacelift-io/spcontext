@@ -25,7 +25,7 @@ func TestFieldsWith(t *testing.T) {
 		f := &Fields{}
 		g.It("odd number of fields", func() {
 			gomega.Expect(func() {
-				f.With("test", 1, "test2")
+				f.With("test", 1, "test2") //nolint:staticcheck // negative test case
 			}).To(gomega.PanicWith("invalid Fields.With call: odd number of arguments"))
 		})
 	})
