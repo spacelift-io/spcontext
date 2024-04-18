@@ -1,9 +1,7 @@
 package spcontext
 
 import (
-	stdlog "log"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // Fields represents and contains structure metadata.
@@ -14,9 +12,10 @@ type Fields struct {
 }
 
 // With creates a new child Fields with additional fields.
+// Panics if odd number of arguments were passed or key(first value of each pair) is not a string.
 func (fields *Fields) With(kvs ...interface{}) *Fields {
 	if len(kvs)%2 != 0 {
-		stdlog.Fatalf("%+v", errors.New("invalid Fields.With call: odd number of arguments"))
+		panic("invalid Fields.With call: odd number of arguments")
 	}
 
 	keys := make([]string, len(kvs)/2)
@@ -25,7 +24,7 @@ func (fields *Fields) With(kvs ...interface{}) *Fields {
 		var ok bool
 		keys[i], ok = kvs[2*i].(string)
 		if !ok {
-			stdlog.Fatalf("invalid Fields.With call: non-string log field key: %v", kvs[2*i])
+			panic(fmt.Sprintf("invalid Fields.With call: non-string log field key: %v", kvs[2*i]))
 		}
 		values[i] = kvs[2*i+1]
 	}
