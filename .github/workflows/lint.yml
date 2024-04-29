@@ -5,7 +5,7 @@ on: { push: { branches-ignore: [main, production] } }
 jobs:
   lint:
     runs-on: ubuntu-latest
-    container: golang:1.19
+    container: golang:1.22
 
     steps:
       - name: Check out repository code
@@ -14,4 +14,4 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.50
+          version: v1.57

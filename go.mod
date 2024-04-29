@@ -1,6 +1,6 @@
 module github.com/spacelift-io/spcontext
 
-go 1.18
+go 1.22.1
 
 require (
 	github.com/aws/aws-xray-sdk-go v1.8.0
@@ -23,6 +23,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
+	github.com/bitly/go-simplejson v0.5.1 // indirect
 	github.com/bugsnag/panicwrap v1.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

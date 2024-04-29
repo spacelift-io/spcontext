@@ -158,7 +158,7 @@ func WithCancel(ctx *Context) (*Context, CancelFunc) {
 	}, cancel
 }
 
-// WithTimeout returns a context with a timeout. Use instead of context.WithTimeout
+// WithTimeout returns a context with a timeout. Use instead of context.WithTimeout.
 func WithTimeout(ctx *Context, timeout time.Duration) (*Context, context.CancelFunc) {
 	newCtx, cancel := context.WithTimeout(ctx.Context, timeout)
 	return &Context{
@@ -171,9 +171,39 @@ func WithTimeout(ctx *Context, timeout time.Duration) (*Context, context.CancelF
 	}, cancel
 }
 
-// WithDeadline returns a context with a deadline. Use instead of context.WithDeadline
+// WithTimeoutCause returns a context with a timeout,
+// but also sets the cause of the returned Context when the timeout expires.
+// The returned [CancelFunc] does not set the cause. Use instead of context.WithTimeoutCause.
+func WithTimeoutCause(ctx *Context, timeout time.Duration, cause error) (*Context, context.CancelFunc) {
+	newCtx, cancel := context.WithTimeoutCause(ctx.Context, timeout, cause)
+	return &Context{
+		Context:          newCtx,
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
+	}, cancel
+}
+
+// WithDeadline returns a context with a deadline. Use instead of context.WithDeadline.
 func WithDeadline(ctx *Context, d time.Time) (*Context, context.CancelFunc) {
 	newCtx, cancel := context.WithDeadline(ctx.Context, d)
+	return &Context{
+		Context:          newCtx,
+		fields:           ctx.fields,
+		logger:           ctx.logger,
+		Notifier:         ctx.Notifier,
+		Tracer:           ctx.Tracer,
+		onSpanStartHooks: ctx.onSpanStartHooks,
+	}, cancel
+}
+
+// WithDeadlineCause returns a context with a deadline,
+// but also sets the cause of the returned Context when the deadline is exceeded.
+// The returned [CancelFunc] does not set the cause. Use instead of context.WithDeadlineCause.
+func WithDeadlineCause(ctx *Context, d time.Time, cause error) (*Context, context.CancelFunc) {
+	newCtx, cancel := context.WithDeadlineCause(ctx.Context, d, cause)
 	return &Context{
 		Context:          newCtx,
 		fields:           ctx.fields,
