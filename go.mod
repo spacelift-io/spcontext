@@ -1,6 +1,6 @@
 module github.com/spacelift-io/spcontext
 
-go 1.22.1
+go 1.22
 
 require (
 	github.com/aws/aws-xray-sdk-go v1.8.0
