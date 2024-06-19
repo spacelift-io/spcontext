@@ -28,6 +28,12 @@ type errorWithStackFrames struct {
 	err stackTracer
 }
 
+// Cause returns initial error, provides compatibility for pkg/errors chains.
+func (w *errorWithStackFrames) Cause() error { return w.err }
+
+// Unwrap returns initial error, provides compatibility for Go 1.13 error chains.
+func (w *errorWithStackFrames) Unwrap() error { return w.err }
+
 func (e *errorWithStackFrames) Error() string {
 	return e.err.Error()
 }
