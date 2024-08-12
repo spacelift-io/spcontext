@@ -341,7 +341,6 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 		}
 
 		var curErr = err
-		errorClass = reflect.TypeOf(err).String()
 		for {
 			unwrapped := errors.Unwrap(curErr)
 			if unwrapped == nil {
