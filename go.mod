@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aws/aws-xray-sdk-go v1.8.0
-	github.com/bugsnag/bugsnag-go v2.2.0+incompatible
+	github.com/bugsnag/bugsnag-go/v2 v2.5.0
 	github.com/franela/goblin v0.0.0-20211003143422-0a4f594942bf
 	github.com/go-kit/log v0.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -23,7 +23,6 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
-	github.com/bitly/go-simplejson v0.5.1 // indirect
 	github.com/bugsnag/panicwrap v1.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -32,7 +31,7 @@ require (
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect

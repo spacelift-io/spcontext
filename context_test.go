@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/bugsnag/bugsnag-go"
+	"github.com/bugsnag/bugsnag-go/v2"
 	"github.com/franela/goblin"
 	"github.com/go-kit/log"
 	. "github.com/onsi/gomega"

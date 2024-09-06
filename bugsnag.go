@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"strings"
 
-	bugsnagerrors "github.com/bugsnag/bugsnag-go/errors"
+	bugsnagerrors "github.com/bugsnag/bugsnag-go/v2/errors"
 	"github.com/pkg/errors"
 )
 
