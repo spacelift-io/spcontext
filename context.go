@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bugsnag/bugsnag-go"
+	"github.com/bugsnag/bugsnag-go/v2"
 	"github.com/go-kit/log"
 	pkgerrors "github.com/pkg/errors"
 )
