@@ -60,7 +60,7 @@ func TestContext(t *testing.T) {
 			suite.True(notifier.AssertCalled(
 				t,
 				"Notify",
-				mock.AnythingOfType("*spcontext.errorWithStackFrames"),
+				mock.AnythingOfType("*errors.fundamental"),
 				mock.AnythingOfType("[]interface {}"),
 			))
 		}
