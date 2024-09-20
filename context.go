@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -332,39 +331,8 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 	}
 
 	if ctx.Notifier != nil && !strings.Contains(err.Error(), context.Canceled.Error()) {
-		var parentErr = err
-		var st stackTracer
-		var errorClass string
-		curSt, ok := parentErr.(stackTracer)
-		if ok {
-			st = curSt
-		}
-
-		var curErr = err
-		for {
-			unwrapped := errors.Unwrap(curErr)
-			if unwrapped == nil {
-				break
-			}
-			curErr = unwrapped
-			curSt, ok := unwrapped.(stackTracer)
-			if !ok {
-				continue
-			}
-			st = curSt
-		}
-		if st != nil {
-			curErr = &errorWithStackFrames{err: st}
-			errorClass = reflect.TypeOf(st).String()
-		} else {
-			curErr = parentErr
-			errorClass = reflect.TypeOf(parentErr).String()
-		}
-
-		fieldsMap["original_error"] = parentErr.Error()
-
-		if err := ctx.Notifier.Notify(curErr, bugsnag.MetaData{FieldsTab: fieldsMap}, ctx, bugsnag.ErrorClass{Name: errorClass}); err != nil {
-			ctx.Errorf("error notifying the exception tracker: %v", err)
+		if notifierError := ctx.Notifier.Notify(err, bugsnag.MetaData{FieldsTab: fieldsMap}, ctx); notifierError != nil {
+			ctx.Errorf("error notifying the exception tracker: %v", notifierError)
 		}
 	}
 
