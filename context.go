@@ -323,7 +323,7 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 	}
 	if notifiedErr := (notifiedError{}); errors.As(err, &notifiedErr) {
 		// This error has already been notified to bugsnag before.
-		return safe
+		return notifiedError{error: safe}
 	}
 
 	fieldsMap := make(map[string]interface{})
