@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/log"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -308,4 +309,24 @@ func TestBackgroundWithValuesFrom(t *testing.T) {
 
 	require.Equal(t, "keyValue", backgroundWithValues.Value("keyName"))
 	require.Equal(t, "fieldValue", backgroundWithValues.Fields().Value("fieldName"))
+}
+
+func TestNotifiedLogic(t *testing.T) {
+	base := spcontext.New(log.NewNopLogger())
+	notifier := new(testutils.MockNotifier)
+	notifier.On(
+		"Notify",
+		mock.MatchedBy(func(in interface{}) bool {
+			err, ok := in.(error)
+			require.True(t, ok)
+			assert.EqualError(t, err, "initial error")
+			return true
+		}),
+		mock.Anything,
+	).Times(1).Return(nil)
+	defer notifier.AssertExpectations(t)
+	base.Notifier = notifier
+	err := base.InternalError(errors.New("initial error"), "foo")
+	err = base.DirectError(err, "skipped error")
+	err = base.DirectError(err, "also skipped error")
 }
