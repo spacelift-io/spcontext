@@ -328,5 +328,5 @@ func TestNotifiedLogic(t *testing.T) {
 	base.Notifier = notifier
 	err := base.InternalError(errors.New("initial error"), "foo")
 	err = base.DirectError(err, "skipped error")
-	err = base.DirectError(err, "also skipped error")
+	_ = base.DirectError(err, "also skipped error")
 }
