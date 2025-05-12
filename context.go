@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"reflect"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/bugsnag/bugsnag-go/v2"
-	"github.com/go-kit/log"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -17,7 +19,7 @@ import (
 const FieldsTab = "fields"
 
 // Valuer can be passed to get dynamic values in log fields.
-type Valuer log.Valuer
+type Valuer func() interface{}
 
 // Notifier models the bugsnag interface.
 type Notifier interface {
@@ -25,16 +27,11 @@ type Notifier interface {
 	AutoNotify(...interface{})
 }
 
-// Logger models the accepted logger underlying the context.
-type Logger interface {
-	Log(keyvals ...interface{}) error
-}
-
 // Context is a drop-in replacement to context.Context. Include logging, error reporting and structured metadata.
 type Context struct {
 	context.Context
 	fields   *Fields
-	logger   Logger
+	logger   *slog.Logger
 	Notifier Notifier
 
 	Tracer Tracer
@@ -67,12 +64,20 @@ func OnSpanStart(hook func(parentSpan, activeSpan Span)) ContextOption {
 }
 
 // New creates a new context with the logger and configured using additional options.
-func New(logger Logger, opts ...ContextOption) *Context {
+func New(logger *slog.Logger, opts ...ContextOption) *Context {
 	ctx := &Context{
 		Context: context.Background(),
 		fields: (&Fields{}).With(
-			"caller", Valuer(log.Caller(4)),
-			"ts", Valuer(log.Timestamp(time.Now)),
+			"caller", Valuer(func() interface{} {
+				_, file, line, ok := runtime.Caller(4)
+				if !ok {
+					return nil
+				}
+				return fmt.Sprintf("%s:%d", file, line)
+			}),
+			"ts", Valuer(func() interface{} {
+				return time.Now().Format(time.RFC3339Nano)
+			}),
 		),
 		logger: logger,
 		Tracer: &NopTracer{},
@@ -125,7 +130,7 @@ func FromStdContext(stdCtx context.Context) *Context {
 	return &Context{
 		Context:  stdCtx,
 		fields:   &Fields{},
-		logger:   log.NewNopLogger(),
+		logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Notifier: nil,
 		Tracer:   &NopTracer{},
 	}
@@ -256,31 +261,40 @@ func (ctx *Context) getEvaluatedFields() []interface{} {
 	return append(ctx.fields.EvaluateFields(), ctx.Tracer.GetLogFields(ctx)...)
 }
 
-func (ctx *Context) log(fields []interface{}, level string, format string, args ...interface{}) {
-	fields = append(fields,
-		"level", level,
-		"msg", fmt.Sprintf(format, args...))
-	_ = ctx.logger.Log(fields...)
+func (ctx *Context) log(fields []interface{}, level slog.Level, format string, args ...interface{}) {
+	switch level {
+	case slog.LevelDebug:
+		ctx.logger.Debug(fmt.Sprintf(format, args...), fields...)
+	case slog.LevelInfo:
+		ctx.logger.Info(fmt.Sprintf(format, args...), fields...)
+	case slog.LevelWarn:
+		ctx.logger.Warn(fmt.Sprintf(format, args...), fields...)
+	case slog.LevelError:
+		ctx.logger.Error(fmt.Sprintf(format, args...), fields...)
+	default:
+		ctx.logger.Info(fmt.Sprintf(format, args...), fields...)
+		ctx.logger.Error("unhandled log level", slog.Any("level", level))
+	}
 }
 
 // Errorf logs the message with error level.
 func (ctx *Context) Errorf(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "error", format, args...)
+	ctx.log(ctx.getEvaluatedFields(), slog.LevelError, format, args...)
 }
 
 // Warnf logs the message with warning level.
 func (ctx *Context) Warnf(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "warning", format, args...)
+	ctx.log(ctx.getEvaluatedFields(), slog.LevelWarn, format, args...)
 }
 
 // Infof logs the message with info level.
 func (ctx *Context) Infof(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "info", format, args...)
+	ctx.log(ctx.getEvaluatedFields(), slog.LevelInfo, format, args...)
 }
 
 // Debugf logs the message with debug level.
 func (ctx *Context) Debugf(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "debug", format, args...)
+	ctx.log(ctx.getEvaluatedFields(), slog.LevelDebug, format, args...)
 }
 
 // InternalMessage is an internal error message not meant for users.
@@ -368,7 +382,7 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 		}
 	}
 
-	ctx.log(fields, "error", "%s: %v", internal.Error(), err)
+	ctx.log(fields, slog.LevelError, "%s: %v", internal.Error(), err)
 
 	return notifiedError{error: safe}
 }

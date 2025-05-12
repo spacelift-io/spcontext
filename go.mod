@@ -6,7 +6,6 @@ require (
 	github.com/aws/aws-xray-sdk-go v1.8.4
 	github.com/bugsnag/bugsnag-go/v2 v2.5.0
 	github.com/franela/goblin v0.0.0-20211003143422-0a4f594942bf
-	github.com/go-kit/log v0.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/onsi/gomega v1.32.0
 	github.com/pkg/errors v0.9.1
@@ -33,7 +32,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.6.0-alpha.5 // indirect
-	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

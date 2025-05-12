@@ -3,11 +3,11 @@ package spcontext_test
 import (
 	"bytes"
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/bugsnag/bugsnag-go/v2"
 	"github.com/franela/goblin"
-	"github.com/go-kit/log"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,8 @@ func TestContext(t *testing.T) {
 			logBuffer = bytes.NewBuffer(nil)
 			notifier = new(testutils.MockNotifier)
 
-			sut = spcontext.New(log.NewLogfmtLogger(logBuffer)).With("xtest", true)
+			logger := slog.New(slog.NewTextHandler(logBuffer, nil))
+			sut = spcontext.New(logger).With("xtest", true)
 		})
 
 		withNotifier := func(errorMessage string) {
@@ -85,7 +86,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="message: bacon"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="message: bacon"`))
 				})
 			})
 
@@ -103,7 +104,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="message: bacon"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="message: bacon"`))
 				})
 			})
 
@@ -121,7 +122,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="message: context canceled"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="message: context canceled"`))
 				})
 			})
 		})
@@ -142,7 +143,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="internal: bacon"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="internal: bacon"`))
 				})
 			})
 
@@ -160,7 +161,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="internal: bacon"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="internal: bacon"`))
 				})
 			})
 
@@ -178,7 +179,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="internal: context canceled"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="internal: context canceled"`))
 				})
 			})
 		})
@@ -198,7 +199,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="internal: bacon"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="internal: bacon"`))
 				})
 			})
 
@@ -216,7 +217,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="internal: bacon"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="internal: bacon"`))
 				})
 			})
 
@@ -234,7 +235,7 @@ func TestContext(t *testing.T) {
 				})
 
 				g.It("logs message", func() {
-					Expect(logBuffer.String()).To(ContainSubstring(`level=error msg="internal: context canceled"`))
+					Expect(logBuffer.String()).To(ContainSubstring(`level=ERROR msg="internal: context canceled"`))
 				})
 			})
 		})
@@ -288,7 +289,7 @@ func TestContext(t *testing.T) {
 }
 
 func TestBackgroundWithValuesFrom(t *testing.T) {
-	base := spcontext.New(log.NewNopLogger())
+	base := spcontext.New(spcontext.NewNopLogger())
 	withField := base.With("fieldName", "fieldValue")
 	withValue := spcontext.WithValue(withField, "keyName", "keyValue")
 	withCancel, cancel := spcontext.WithCancel(withValue)
@@ -312,7 +313,7 @@ func TestBackgroundWithValuesFrom(t *testing.T) {
 }
 
 func TestNotifiedLogic(t *testing.T) {
-	base := spcontext.New(log.NewNopLogger())
+	base := spcontext.New(spcontext.NewNopLogger())
 	notifier := new(testutils.MockNotifier)
 	notifier.On(
 		"Notify",
