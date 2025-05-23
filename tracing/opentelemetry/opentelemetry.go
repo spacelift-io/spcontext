@@ -21,6 +21,9 @@ func (t *Tracer) OnSpanStart(ctx *spcontext.Context, name, resource string) *spc
 	if resource != "" {
 		opts = append(opts, trace.WithAttributes(attribute.String("resource", resource)))
 	}
+	if name != "" {
+		opts = append(opts, trace.WithAttributes(attribute.String("operation.name", name)))
+	}
 
 	parentContext := ctx
 
