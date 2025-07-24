@@ -330,3 +330,112 @@ func TestNotifiedLogic(t *testing.T) {
 	err = base.DirectError(err, "skipped error")
 	_ = base.DirectError(err, "also skipped error")
 }
+
+func TestLogLevel(t *testing.T) {
+	testCases := []struct {
+		name        string
+		logLevel    spcontext.LogLevel
+		expectError bool
+		expectWarn  bool
+		expectInfo  bool
+		expectDebug bool
+	}{
+		{
+			name:        "Error level",
+			logLevel:    spcontext.LogLevelError,
+			expectError: true,
+			expectWarn:  false,
+			expectInfo:  false,
+			expectDebug: false,
+		},
+		{
+			name:        "Warn level",
+			logLevel:    spcontext.LogLevelWarn,
+			expectError: true,
+			expectWarn:  true,
+			expectInfo:  false,
+			expectDebug: false,
+		},
+		{
+			name:        "Info level",
+			logLevel:    spcontext.LogLevelInfo,
+			expectError: true,
+			expectWarn:  true,
+			expectInfo:  true,
+			expectDebug: false,
+		},
+		{
+			name:        "Debug level",
+			logLevel:    spcontext.LogLevelDebug,
+			expectError: true,
+			expectWarn:  true,
+			expectInfo:  true,
+			expectDebug: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			logBuffer := bytes.NewBuffer(nil)
+			ctx := spcontext.New(log.NewLogfmtLogger(logBuffer), spcontext.WithLogLevel(tc.logLevel))
+
+			// Test error logging
+			ctx.Errorf("error message")
+			if tc.expectError {
+				assert.Contains(t, logBuffer.String(), `level=error msg="error message"`)
+			} else {
+				assert.NotContains(t, logBuffer.String(), `level=error msg="error message"`)
+			}
+
+			// Reset buffer and test warn logging
+			logBuffer.Reset()
+			ctx.Warnf("warn message")
+			if tc.expectWarn {
+				assert.Contains(t, logBuffer.String(), `level=warning msg="warn message"`)
+			} else {
+				assert.NotContains(t, logBuffer.String(), `level=warning msg="warn message"`)
+			}
+
+			// Reset buffer and test info logging
+			logBuffer.Reset()
+			ctx.Infof("info message")
+			if tc.expectInfo {
+				assert.Contains(t, logBuffer.String(), `level=info msg="info message"`)
+			} else {
+				assert.NotContains(t, logBuffer.String(), `level=info msg="info message"`)
+			}
+
+			// Reset buffer and test debug logging
+			logBuffer.Reset()
+			ctx.Debugf("debug message")
+			if tc.expectDebug {
+				assert.Contains(t, logBuffer.String(), `level=debug msg="debug message"`)
+			} else {
+				assert.NotContains(t, logBuffer.String(), `level=debug msg="debug message"`)
+			}
+		})
+	}
+
+	t.Run("Default log level is info", func(t *testing.T) {
+		logBuffer := bytes.NewBuffer(nil)
+		ctx := spcontext.New(log.NewLogfmtLogger(logBuffer))
+
+		ctx.Debugf("debug message")
+		ctx.Infof("info message")
+
+		assert.NotContains(t, logBuffer.String(), `level=debug msg="debug message"`)
+		assert.Contains(t, logBuffer.String(), `level=info msg="info message"`)
+	})
+
+	t.Run("Log level is preserved in child contexts", func(t *testing.T) {
+		logBuffer := bytes.NewBuffer(nil)
+		ctx := spcontext.New(log.NewLogfmtLogger(logBuffer), spcontext.WithLogLevel(spcontext.LogLevelWarn))
+		
+		childCtx := ctx.With("field", "value")
+		childCtx.Infof("info message")
+		childCtx.Warnf("warn message")
+
+		assert.NotContains(t, logBuffer.String(), `level=info msg="info message"`)
+		assert.Contains(t, logBuffer.String(), `level=warning msg="warn message"`)
+	})
+}

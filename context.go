@@ -19,6 +19,16 @@ const FieldsTab = "fields"
 // Valuer can be passed to get dynamic values in log fields.
 type Valuer log.Valuer
 
+// LogLevel represents the logging level.
+type LogLevel int
+
+const (
+	LogLevelError LogLevel = iota
+	LogLevelWarn
+	LogLevelInfo
+	LogLevelDebug
+)
+
 // Notifier models the bugsnag interface.
 type Notifier interface {
 	Notify(error, ...interface{}) error
@@ -35,6 +45,7 @@ type Context struct {
 	context.Context
 	fields   *Fields
 	logger   Logger
+	logLevel LogLevel
 	Notifier Notifier
 
 	Tracer Tracer
@@ -59,6 +70,13 @@ func WithTracer(tracer Tracer) ContextOption {
 	}
 }
 
+// WithLogLevel sets the log level for the new context.
+func WithLogLevel(level LogLevel) ContextOption {
+	return func(ctx *Context) {
+		ctx.logLevel = level
+	}
+}
+
 // OnSpanStart adds an on span start hook to the new context.
 func OnSpanStart(hook func(parentSpan, activeSpan Span)) ContextOption {
 	return func(ctx *Context) {
@@ -74,8 +92,9 @@ func New(logger Logger, opts ...ContextOption) *Context {
 			"caller", Valuer(log.Caller(4)),
 			"ts", Valuer(log.Timestamp(time.Now)),
 		),
-		logger: logger,
-		Tracer: &NopTracer{},
+		logger:   logger,
+		logLevel: LogLevelInfo,
+		Tracer:   &NopTracer{},
 	}
 
 	for _, opt := range opts {
@@ -90,6 +109,7 @@ func (ctx *Context) With(kvs ...interface{}) *Context {
 		Context:          ctx.Context,
 		fields:           ctx.fields.With(kvs...),
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -116,6 +136,7 @@ func FromStdContext(stdCtx context.Context) *Context {
 			Context:          stdCtx,
 			fields:           outCtx.fields,
 			logger:           outCtx.logger,
+			logLevel:         outCtx.logLevel,
 			Notifier:         outCtx.Notifier,
 			Tracer:           outCtx.Tracer,
 			onSpanStartHooks: outCtx.onSpanStartHooks,
@@ -126,6 +147,7 @@ func FromStdContext(stdCtx context.Context) *Context {
 		Context:  stdCtx,
 		fields:   &Fields{},
 		logger:   log.NewNopLogger(),
+		logLevel: LogLevelInfo,
 		Notifier: nil,
 		Tracer:   &NopTracer{},
 	}
@@ -137,6 +159,7 @@ func WithValue(ctx *Context, key, val interface{}) *Context {
 		Context:          context.WithValue(ctx.Context, key, val),
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -153,6 +176,7 @@ func WithCancel(ctx *Context) (*Context, CancelFunc) {
 		Context:          newCtx,
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -166,6 +190,7 @@ func WithTimeout(ctx *Context, timeout time.Duration) (*Context, context.CancelF
 		Context:          newCtx,
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -181,6 +206,7 @@ func WithTimeoutCause(ctx *Context, timeout time.Duration, cause error) (*Contex
 		Context:          newCtx,
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -194,6 +220,7 @@ func WithDeadline(ctx *Context, d time.Time) (*Context, context.CancelFunc) {
 		Context:          newCtx,
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -209,6 +236,7 @@ func WithDeadlineCause(ctx *Context, d time.Time, cause error) (*Context, contex
 		Context:          newCtx,
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -223,6 +251,7 @@ func BackgroundFrom(ctx *Context) *Context {
 		Context:          context.Background(),
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -237,6 +266,7 @@ func BackgroundWithValuesFrom(ctx *Context) *Context {
 		Context:          &backgroundWithValuesContext{ctx: ctx},
 		fields:           ctx.fields,
 		logger:           ctx.logger,
+		logLevel:         ctx.logLevel,
 		Notifier:         ctx.Notifier,
 		Tracer:           ctx.Tracer,
 		onSpanStartHooks: ctx.onSpanStartHooks,
@@ -256,6 +286,10 @@ func (ctx *Context) getEvaluatedFields() []interface{} {
 	return append(ctx.fields.EvaluateFields(), ctx.Tracer.GetLogFields(ctx)...)
 }
 
+func (ctx *Context) shouldLog(level LogLevel) bool {
+	return level <= ctx.logLevel
+}
+
 func (ctx *Context) log(fields []interface{}, level string, format string, args ...interface{}) {
 	fields = append(fields,
 		"level", level,
@@ -265,22 +299,30 @@ func (ctx *Context) log(fields []interface{}, level string, format string, args 
 
 // Errorf logs the message with error level.
 func (ctx *Context) Errorf(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "error", format, args...)
+	if ctx.shouldLog(LogLevelError) {
+		ctx.log(ctx.getEvaluatedFields(), "error", format, args...)
+	}
 }
 
 // Warnf logs the message with warning level.
 func (ctx *Context) Warnf(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "warning", format, args...)
+	if ctx.shouldLog(LogLevelWarn) {
+		ctx.log(ctx.getEvaluatedFields(), "warning", format, args...)
+	}
 }
 
 // Infof logs the message with info level.
 func (ctx *Context) Infof(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "info", format, args...)
+	if ctx.shouldLog(LogLevelInfo) {
+		ctx.log(ctx.getEvaluatedFields(), "info", format, args...)
+	}
 }
 
 // Debugf logs the message with debug level.
 func (ctx *Context) Debugf(format string, args ...interface{}) {
-	ctx.log(ctx.getEvaluatedFields(), "debug", format, args...)
+	if ctx.shouldLog(LogLevelDebug) {
+		ctx.log(ctx.getEvaluatedFields(), "debug", format, args...)
+	}
 }
 
 // InternalMessage is an internal error message not meant for users.
