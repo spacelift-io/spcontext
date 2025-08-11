@@ -351,18 +351,14 @@ func (ctx *Context) InternalError(err error, message string) error {
 // RawError reports an error wrapped in a message.
 func (ctx *Context) RawError(err error, message string) error {
 	wrapped := pkgerrors.Wrap(err, message)
-	return ctx.error(ctx.getEvaluatedFields(), wrapped, wrapped, wrapped)
+	return ctx.error(ctx.getEvaluatedFields(), err, errors.New(message), wrapped)
 }
 
 // notifiedError is an error which has already been sent to bugsnag. It has the concept of an internal
 // error and a safe error. The internal error is the real underlying cause that we need for reporting to
 // our observability tools, and the safe error is something that's safe to report to users.
 type notifiedError struct {
-	// err is the underlying error that was reported.
-	err error
-
-	// safe is the error that's safe to report to users.
-	safe error
+	internal, safe error
 }
 
 // Error returns the safe error.
@@ -374,9 +370,11 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 	if err == nil {
 		return nil
 	}
+
+	internalErr := pkgerrors.Wrap(err, internal.Error())
 	if notifiedErr := (notifiedError{}); errors.As(err, &notifiedErr) {
 		// This error has already been notified to bugsnag before.
-		return notifiedError{err: err, safe: safe}
+		return notifiedError{internal: internalErr, safe: safe}
 	}
 
 	fieldsMap := make(map[string]interface{})
@@ -423,7 +421,7 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 
 	ctx.log(fields, "error", "%s: %v", internal.Error(), err)
 
-	return notifiedError{err: err, safe: safe}
+	return notifiedError{internal: internalErr, safe: safe}
 }
 
 // Fields returns the context fields.
