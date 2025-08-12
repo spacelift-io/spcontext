@@ -149,7 +149,7 @@ func (s *span) Close(err error, opts ...SpanCloseOption) {
 	// error that we report to our observability.
 	var notifiedErr notifiedError
 	if errors.As(err, &notifiedErr) {
-		err = notifiedErr.err
+		err = notifiedErr.internal
 	}
 
 	s.ctx.Tracer.OnSpanClose(s.ctx, err, fields, s.drop || cfg.Drop, s.analyze || cfg.Analyze)
