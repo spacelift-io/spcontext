@@ -5,11 +5,14 @@ on: { push: { branches-ignore: [main, production] } }
 jobs:
   lint:
     runs-on: ubuntu-latest
-    container: golang:1.22
 
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with: { go-version-file: go.mod }
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9

@@ -366,6 +366,11 @@ func (e notifiedError) Error() string {
 	return e.safe.Error()
 }
 
+// Unwrap returns the internal error.
+func (e notifiedError) Unwrap() error {
+	return e.internal
+}
+
 func (ctx *Context) error(fields []interface{}, err error, internal InternalMessage, safe SafeMessage) error {
 	if err == nil {
 		return nil

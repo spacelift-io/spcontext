@@ -56,7 +56,7 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []any, dr
 		}
 	}
 
-	segment.Close(err)
+	segment.Close(internal.UnwrapError(err))
 }
 
 // GetLogFields returns the fields which should be used in a log message in this context.

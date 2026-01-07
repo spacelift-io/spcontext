@@ -53,7 +53,7 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []any, dr
 	}
 
 	if err != nil {
-		span.RecordError(err)
+		span.RecordError(internal.UnwrapError(err))
 		span.SetStatus(codes.Error, "")
 	}
 
