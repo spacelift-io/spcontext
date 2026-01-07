@@ -46,7 +46,7 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []interfa
 		span.SetTag(key, value)
 	}
 
-	span.Finish(tracer.WithError(err))
+	span.Finish(tracer.WithError(internal.UnwrapError(err)))
 }
 
 // GetLogFields returns the fields which should be used in a log message in this context.
