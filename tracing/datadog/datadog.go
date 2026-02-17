@@ -1,9 +1,8 @@
 package datadog
 
 import (
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 
 	"github.com/spacelift-io/spcontext"
 	"github.com/spacelift-io/spcontext/tracing/internal"
@@ -15,7 +14,7 @@ type Tracer struct {
 
 // OnSpanStart is called when a new span is created.
 func (t *Tracer) OnSpanStart(ctx *spcontext.Context, name, resource string) *spcontext.Context {
-	opts := []ddtrace.StartSpanOption{tracer.Measured()}
+	opts := []tracer.StartSpanOption{tracer.Measured()}
 	if resource != "" {
 		opts = append(opts, tracer.ResourceName(resource))
 	}
