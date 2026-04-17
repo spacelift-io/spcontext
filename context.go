@@ -371,6 +371,27 @@ func (e notifiedError) Unwrap() error {
 	return e.internal
 }
 
+// NotifyError is an optional interface error types can implement to control
+// whether the error (or any error wrapping one) is sent to the configured
+// Notifier. Returning false suppresses the notifier call while still logging.
+// The decision is taken from the outermost implementor found in the chain via
+// errors.As.
+type NotifyError interface {
+	Notify() bool
+}
+
+// shouldNotify inspects the original error chain for a NotifyError implementor
+// and respects its decision. This must run before the chain is unwrapped to
+// find a stackTracer, since that unwrap replaces the error with a bare wrapper
+// that no longer exposes the NotifyError interface to downstream notifiers.
+func shouldNotify(err error) bool {
+	var ne NotifyError
+	if errors.As(err, &ne) {
+		return ne.Notify()
+	}
+	return true
+}
+
 func (ctx *Context) error(fields []interface{}, err error, internal InternalMessage, safe SafeMessage) error {
 	if err == nil {
 		return nil
@@ -387,7 +408,7 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 		fieldsMap[fields[2*i].(string)] = fields[2*i+1]
 	}
 
-	if ctx.Notifier != nil && !strings.Contains(err.Error(), context.Canceled.Error()) {
+	if ctx.Notifier != nil && !strings.Contains(err.Error(), context.Canceled.Error()) && shouldNotify(err) {
 		var parentErr = err
 		var st stackTracer
 		var errorClass string
