@@ -331,6 +331,79 @@ func TestNotifiedLogic(t *testing.T) {
 	_ = base.DirectError(err, "also skipped error")
 }
 
+type suppressNotifyError struct{ error }
+
+func (e suppressNotifyError) Notify() bool  { return false }
+func (e suppressNotifyError) Unwrap() error { return e.error }
+
+type allowNotifyError struct{ error }
+
+func (e allowNotifyError) Notify() bool  { return true }
+func (e allowNotifyError) Unwrap() error { return e.error }
+
+func TestNotifyInterface(t *testing.T) {
+	t.Run("suppresses notifier when error implements Notify() bool = false", func(t *testing.T) {
+		logBuffer := bytes.NewBuffer(nil)
+		notifier := new(testutils.MockNotifier)
+		defer notifier.AssertExpectations(t)
+
+		ctx := spcontext.New(log.NewLogfmtLogger(logBuffer))
+		ctx.Notifier = notifier
+
+		err := suppressNotifyError{error: errors.New("boom")}
+		returned := ctx.InternalError(err, "op failed")
+
+		assert.EqualError(t, returned, "internal error")
+		assert.Contains(t, logBuffer.String(), `level=error msg="op failed: boom"`)
+		notifier.AssertNotCalled(t, "Notify")
+	})
+
+	t.Run("suppresses notifier when Notify() bool = false is wrapped", func(t *testing.T) {
+		logBuffer := bytes.NewBuffer(nil)
+		notifier := new(testutils.MockNotifier)
+		defer notifier.AssertExpectations(t)
+
+		ctx := spcontext.New(log.NewLogfmtLogger(logBuffer))
+		ctx.Notifier = notifier
+
+		// Mirror the Bugsnag error chain from the production incident:
+		// errors.Wrap(UserError{errors.Wrap(fundamental, ...)}, ...).
+		inner := errors.New("fundamental")
+		userErr := suppressNotifyError{error: errors.Wrap(inner, "user-facing")}
+		outer := errors.Wrap(userErr, "outer")
+
+		returned := ctx.InternalError(outer, "op failed")
+
+		assert.EqualError(t, returned, "internal error")
+		notifier.AssertNotCalled(t, "Notify")
+	})
+
+	t.Run("calls notifier when error implements Notify() bool = true", func(t *testing.T) {
+		logBuffer := bytes.NewBuffer(nil)
+		notifier := new(testutils.MockNotifier)
+		notifier.On("Notify", mock.Anything, mock.Anything).Return(nil).Once()
+		defer notifier.AssertExpectations(t)
+
+		ctx := spcontext.New(log.NewLogfmtLogger(logBuffer))
+		ctx.Notifier = notifier
+
+		err := allowNotifyError{error: errors.New("boom")}
+		_ = ctx.InternalError(err, "op failed")
+	})
+
+	t.Run("calls notifier when chain has no Notify() implementor", func(t *testing.T) {
+		logBuffer := bytes.NewBuffer(nil)
+		notifier := new(testutils.MockNotifier)
+		notifier.On("Notify", mock.Anything, mock.Anything).Return(nil).Once()
+		defer notifier.AssertExpectations(t)
+
+		ctx := spcontext.New(log.NewLogfmtLogger(logBuffer))
+		ctx.Notifier = notifier
+
+		_ = ctx.InternalError(errors.New("boom"), "op failed")
+	})
+}
+
 func TestLogLevel(t *testing.T) {
 	testCases := []struct {
 		name        string
