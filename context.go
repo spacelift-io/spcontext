@@ -412,8 +412,12 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 		var parentErr = err
 		var st stackTracer
 		var errorClass string
-		curSt, ok := parentErr.(stackTracer)
-		if ok {
+
+		// Walk to the deepest stackTracer in the chain so the report points at
+		// the error origin. Skip stacks that contain only runtime frames, those
+		// come from initializing the error itself and carry no value.
+
+		if curSt, ok := parentErr.(stackTracer); ok && !hasInitTimeStackOnly(curSt) {
 			st = curSt
 		}
 
@@ -428,8 +432,12 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 			if !ok {
 				continue
 			}
+			if hasInitTimeStackOnly(curSt) {
+				continue
+			}
 			st = curSt
 		}
+
 		if st != nil {
 			curErr = &errorWithStackFrames{err: st}
 			errorClass = reflect.TypeOf(st).String()
