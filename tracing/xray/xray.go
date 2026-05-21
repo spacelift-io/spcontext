@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/aws/aws-xray-sdk-go/v2/xray"
 
 	"github.com/spacelift-io/spcontext"
 	"github.com/spacelift-io/spcontext/tracing/internal"
