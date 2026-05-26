@@ -38,6 +38,49 @@ func (e *errorWithStackFrames) Error() string {
 	return e.err.Error()
 }
 
+// hasInitTimeStackOnly reports whether st's stack contains only frames from
+// process startup (runtime.*, main.main, package init functions).
+//
+// This is the signature of a pkg/errors error created at package init via
+// `var ErrFoo = errors.New("...")` or similar, whose captured stack points to nothing
+// meaningful.
+//
+// The chain walk in (*Context).error skips such stacks so Bugsnag receives a useful
+// frame instead.
+func hasInitTimeStackOnly(st stackTracer) bool {
+	trace := st.StackTrace()
+	if len(trace) == 0 {
+		return false
+	}
+	for _, frame := range trace {
+		pc := uintptr(frame) - 1
+		fn := runtime.FuncForPC(pc)
+		if fn == nil {
+			return false
+		}
+		if !isInitOrRuntimeFrame(fn.Name()) {
+			return false
+		}
+	}
+	return true
+}
+
+// isInitOrRuntimeFrame matches function names produced by the Go runtime's
+// startup sequence and compiler-generated package init functions.
+func isInitOrRuntimeFrame(name string) bool {
+	switch {
+	case strings.HasPrefix(name, "runtime."):
+		return true
+	case name == "main.main":
+		return true
+	case strings.HasSuffix(name, ".init"):
+		return true
+	case strings.Contains(name, ".init."):
+		return true
+	}
+	return false
+}
+
 func (e *errorWithStackFrames) StackFrames() []bugsnagerrors.StackFrame {
 	stackTrace := e.err.StackTrace()
 
