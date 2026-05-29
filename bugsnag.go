@@ -23,19 +23,25 @@ type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
-// errorWithStackFrames satisfies bugsnag.ErrorWithStackFrames for a github.com/pkg/errors error.
-type errorWithStackFrames struct {
-	err stackTracer
+// errorWithGrouping satisfies bugsnag.ErrorWithStackFrames for a github.com/pkg/errors error.
+type errorWithGrouping struct {
+	// original is the error provided by the client, needs to be unwrapped to show the full StackTrace
+	original error
+	// groupingErr must implement stackTracer - we want to see the stack trace in the BugSnag UI
+	groupingErr stackTracer
 }
 
-// Cause returns initial error, provides compatibility for pkg/errors chains.
-func (w *errorWithStackFrames) Cause() error { return w.err }
+func (e *errorWithGrouping) Cause() error { return e.original }
 
-// Unwrap returns initial error, provides compatibility for Go 1.13 error chains.
-func (w *errorWithStackFrames) Unwrap() error { return w.err }
+// Unwrap returns the full original chain so errors.As/Is traversal keeps working
+// (e.g. the notifier's notifyError skip and dberrors.Error detection). Collapsing
+// the chain into a single Bugsnag exception is done downstream, by the notifier,
+// after that inspection.
+func (e *errorWithGrouping) Unwrap() error { return e.original }
 
-func (e *errorWithStackFrames) Error() string {
-	return e.err.Error()
+// Error returns the original error, so we can see the full trace in the Bugsnag UI.
+func (e *errorWithGrouping) Error() string {
+	return e.original.Error()
 }
 
 // hasInitTimeStackOnly reports whether st's stack contains only frames from
@@ -81,8 +87,9 @@ func isInitOrRuntimeFrame(name string) bool {
 	return false
 }
 
-func (e *errorWithStackFrames) StackFrames() []bugsnagerrors.StackFrame {
-	stackTrace := e.err.StackTrace()
+// StackFrames returns the stack frames from the grouping error, which is used by Bugsnag for grouping and reporting.
+func (e *errorWithGrouping) StackFrames() []bugsnagerrors.StackFrame {
+	stackTrace := e.groupingErr.StackTrace()
 
 	out := make([]bugsnagerrors.StackFrame, len(stackTrace))
 	for i, frame := range stackTrace {

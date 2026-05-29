@@ -76,7 +76,7 @@ func TestContext(t *testing.T) {
 			suite.True(notifier.AssertCalled(
 				t,
 				"Notify",
-				mock.AnythingOfType("*spcontext.errorWithStackFrames"),
+				mock.AnythingOfType("*spcontext.errorWithGrouping"),
 				mock.AnythingOfType("[]interface {}"),
 			))
 		}
@@ -263,7 +263,7 @@ func TestContext(t *testing.T) {
 			stackFramesErr := func() bugsnagerrors.ErrorWithStackFrames {
 				suite.Require().Len(notifier.Calls, 1)
 				e, ok := notifier.Calls[0].Arguments[0].(bugsnagerrors.ErrorWithStackFrames)
-				suite.Require().True(ok, "notifier should receive a *errorWithStackFrames wrapper")
+				suite.Require().True(ok, "notifier should receive a *errorWithGrouping wrapper")
 				return e
 			}
 
@@ -532,4 +532,44 @@ func TestLogLevel(t *testing.T) {
 		assert.NotContains(t, logBuffer.String(), `level=info msg="info message"`)
 		assert.Contains(t, logBuffer.String(), `level=warning msg="warn message"`)
 	})
+}
+
+type suppressNotifyError struct{ error }
+
+func (suppressNotifyError) Notify() bool    { return false }
+func (e suppressNotifyError) Unwrap() error { return e.error }
+
+func TestNotifiedErrorPreservesChainAcrossResend(t *testing.T) {
+	notifier := new(testutils.MockNotifier)
+	notifier.On("Notify", mock.Anything, mock.Anything).Return(nil)
+
+	ctx := spcontext.New(log.NewNopLogger())
+	ctx.Notifier = notifier
+
+	marker := suppressNotifyError{error: errors.Wrap(errors.New("deep"), "down")}
+	err := errors.Wrap(marker, "up")
+
+	// First send: spcontext wraps into errorWithGrouping and notifies once.
+	returned := ctx.InternalError(err, "op failed")
+	notifier.AssertNumberOfCalls(t, "Notify", 1)
+
+	// 1. The marker survives in the error returned to the caller...
+	var inReturned suppressNotifyError
+	require.ErrorAs(t, returned, &inReturned, "marker must survive in the returned error")
+
+	// ...and is reachable in the error actually handed to Notify (the
+	// errorWithGrouping wrapper). This is what the PR fixes: downstream errors.As
+	// (the notifyError skip / dberrors.Error detection) must traverse the full chain.
+	passedToNotify, ok := notifier.Calls[0].Arguments[0].(error)
+	require.True(t, ok)
+	var inNotified suppressNotifyError
+	require.ErrorAs(t, passedToNotify, &inNotified, "marker must be reachable in the error handed to the notifier")
+
+	// 2. Re-sending the already-notified error must NOT notify again.
+	resent := ctx.InternalError(returned, "op failed again")
+	notifier.AssertNumberOfCalls(t, "Notify", 1)
+
+	// 3. The marker is still reachable after the re-send.
+	var afterResend suppressNotifyError
+	require.ErrorAs(t, resent, &afterResend, "marker must still be reachable after re-send")
 }
