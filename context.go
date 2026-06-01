@@ -388,18 +388,18 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 	}
 
 	if ctx.Notifier != nil && !strings.Contains(err.Error(), context.Canceled.Error()) {
-		var parentErr = err
-		var st stackTracer
-		var errorClass string
+		var originalErr = err
+		var deepestGroupingErr stackTracer
 
 		// Walk to the deepest stackTracer in the chain so the report points at
 		// the error origin. Skip stacks that contain only runtime frames, those
 		// come from initializing the error itself and carry no value.
-
-		if curSt, ok := parentErr.(stackTracer); ok && !hasInitTimeStackOnly(curSt) {
-			st = curSt
+		if originalSt, ok := originalErr.(stackTracer); ok && !hasInitTimeStackOnly(originalSt) {
+			deepestGroupingErr = originalSt
 		}
 
+		// find the deepest error implementing StackTrace()
+		// so there's an actionable output in the BugSnag
 		var curErr = err
 		for {
 			unwrapped := errors.Unwrap(curErr)
@@ -414,19 +414,21 @@ func (ctx *Context) error(fields []interface{}, err error, internal InternalMess
 			if hasInitTimeStackOnly(curSt) {
 				continue
 			}
-			st = curSt
+			deepestGroupingErr = curSt
 		}
 
-		if st != nil {
-			curErr = &errorWithStackFrames{err: st}
-			errorClass = reflect.TypeOf(st).String()
+		var errorClass string
+		if deepestGroupingErr != nil {
+			curErr = &errorWithGrouping{groupingErr: deepestGroupingErr, original: originalErr}
+			errorClass = reflect.TypeOf(deepestGroupingErr).String()
 		} else {
-			curErr = parentErr
-			errorClass = reflect.TypeOf(parentErr).String()
+			curErr = originalErr
+			errorClass = reflect.TypeOf(originalErr).String()
 		}
 
-		fieldsMap["original_error"] = parentErr.Error()
+		fieldsMap["original_error"] = originalErr.Error()
 
+		// Bugsnag grouping is done based on the ErrorClase, and errorWithGrouping.StackFrames() (which points to the deepestGroupingErr)
 		if err := ctx.Notifier.Notify(curErr, bugsnag.MetaData{FieldsTab: fieldsMap}, ctx, bugsnag.ErrorClass{Name: errorClass}); err != nil {
 			ctx.Errorf("error notifying the exception tracker: %v", err)
 		}
