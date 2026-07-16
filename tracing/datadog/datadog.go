@@ -36,7 +36,11 @@ func (t *Tracer) OnSpanClose(ctx *spcontext.Context, err error, fields []interfa
 	}
 
 	if analyze || (err != nil && !drop) {
+		// App Analytics (https://docs.datadoghq.com/tracing/legacy_app_analytics) is deprecated.
+		// After its Rust rewrite, the Datadog Lambda Extension stopped tagging spans with analytics_enabled:true.
+		// The recommended way is now to use retention filters; for that, we set spcontext.analyze:true.
 		span.SetTag(ext.AnalyticsEvent, true)
+		span.SetTag("spcontext.analyze", true)
 	}
 
 	// Datadog seems to be OK with duplicate tags but when testing we still want
